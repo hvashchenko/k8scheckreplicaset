@@ -1,0 +1,62 @@
+apiVersion: authorization.openshift.io/v1
+kind: ClusterRole
+metadata:
+  name: get-events
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  - replicasets
+  - events
+  verbs:
+  - get
+  - list
+  - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: staging-get-events
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: get-events
+subjects:
+- kind: ServiceAccount
+  name: default
+  namespace: staging
+---
+
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: events-deployment
+  labels:
+    app: events
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: events
+  template:
+    metadata:
+      labels:
+        app: events
+    spec:
+      securityContext:
+        runAsUser: 0
+      terminationGracePeriodSeconds: 60
+      containers:
+      - name: events
+        image: ubuntu
+        command:
+        - sleep
+        - "3600"
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+
